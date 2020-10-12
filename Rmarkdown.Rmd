@@ -1,0 +1,97 @@
+---
+title: "Assessment 1 Repro"
+author: "JuanPMarino"
+date: "11/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Resume
+
+This is an R Markdown document about the peer assessment in the Reproducible Research course.
+##Loading the libraries
+```{r}
+library(ggplot2)
+```
+##Loading and trasnsforming the data.
+Loading and transforming the data for further analisys, the transform happens in the time system of the data set.
+
+```{r Loading the data and transform}
+data <- read.csv('activity.csv')
+data <- transform(data, date = as.Date(date))
+```
+
+##The mean total steps per day
+Adding the column of the total steps per day
+```{r aggregate the steps per day}
+steps_day <- aggregate(steps ~ date, data, sum, na.rm = TRUE)
+```
+Creating the histogram required about the mean steps taken per day.
+```{r create the plot}
+hist(steps_day$steps, main = "Total Steps per day", xlab = "Steps", ylim = c(0,40), labels = TRUE)
+```
+
+The mean:
+```{r}
+mean(steps_day$steps)
+```
+Median:
+```{r}
+median(steps_day$steps)
+```
+##The average daily activity
+Aggregate data for time series plot, remove NA’s
+```{r}
+mean_steps_interval <- aggregate(steps ~ interval, data, mean, na.rm = TRUE)
+```
+Create the time series plot
+```{r}
+plot(mean_steps_interval$interval, mean_steps_interval$steps, type = "l", main = "Average number of steps per 5-min interval", xlab = "Interval", ylab = "Average Steps")
+```
+Max interval between steps
+```{r}
+max_interval <- mean_steps_interval$interval[which(mean_steps_interval$steps == max(mean_steps_interval$steps))]
+max_interval
+```
+##With Missing values
+Calculate and report the total number of missing values in the dataset,How many there are.
+```{r}
+sum(is.na(data))
+```
+the replace of the NA'S could be done by each NA in the step, replace it by the mean of the interval to fit redundancy.
+```{r}
+Rep_data <- data
+for (i in 1:length(Rep_data$steps)) {
+  if (is.na(Rep_data$steps[i])) {
+    Rep_data$steps[i] <- mean_steps_interval$steps[mean_steps_interval$interval == Rep_data$interval[i]]
+  }
+}
+imp_steps_per_day <- aggregate(steps ~ date, Rep_data, sum, na.rm = TRUE)
+sum(is.na(imp_steps_per_day$steps))
+```
+
+Check the changes into the histogram 
+```{r}
+hist(imp_steps_per_day$steps, main = "Total Steps per day", xlab = "Steps", ylim = c(0,40), labels = TRUE)
+```
+
+The mean stills the same but the density of the data is not the same.
+##Looking for diferences 
+Add a factor variable that will be either weekend or weekday, and create aggregate for plot
+```{r plot time series in weeks and weekends}
+Rep_data$date <- as.Date(Rep_data$date)
+Rep_data$wkdy <- "weekday"
+Rep_data$wkdy[weekdays(Rep_data$date) == "Saturday" | weekdays(Rep_data$date) == "Sunday"] <- "weekend"
+Rep_data$wkdy <- as.factor(Rep_data$wkdy)
+Rep_data_interval <- aggregate(steps ~ interval + wkdy, Rep_data, mean, na.rm = TRUE)
+```
+Plot the difference
+```{r}
+g <- ggplot(Rep_data_interval, aes(interval, steps))
+g + facet_grid(wkdy~.) + geom_line() + ggtitle("Average number of steps per 5-min interval")
+```
+
+
